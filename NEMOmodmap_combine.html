@@ -1,0 +1,227 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Combining maps &#8212; NEMOmodmap 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Processing all directories" href="NEMOmodmap_alldirs.html" />
+    <link rel="prev" title="Special cases" href="NEMOmodmap_exceptions.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="NEMOmodmap_alldirs.html" title="Processing all directories"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="NEMOmodmap_exceptions.html" title="Special cases"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">NEMOmodmap 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="combining-maps">
+<h1>Combining maps<a class="headerlink" href="#combining-maps" title="Permalink to this headline">¶</a></h1>
+<p>In many cases it is more convenient to produce a single document for multiple sub-directories. To assist
+in this, <cite>submod.sh</cite> generates two latex files. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">submod</span><span class="o">.</span><span class="n">sh</span> <span class="n">OFF_submod</span><span class="o">.</span><span class="n">list</span> <span class="o">&gt;</span> <span class="n">OFF_submod</span><span class="o">.</span><span class="n">tex</span>
+</pre></div>
+</div>
+<p>will have produced: <cite>OFF_submod.tex</cite> and <cite>OFF_submod_inner.tex</cite>. The latter is the latex without the
+document pre- and post-amble. <cite>*inner.tex</cite> files can be concatenated together and inserted just before
+the <cite>\end{document}</cite> statement of any full latex file to create a multipage, multi-drectory listing.</p>
+<p>This can be dressed further by including a title page with a colour key legend. Here is an example for
+the OCE directory. Note this example uses an additional latex package: <cite>pgfpages</cite> to enable multiple
+pages on each a4, landscape page:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>#!/bin/bash
+#
+# Need to rename OCE_submod_inner.tex because we want this first in the list
+  mv OCE_submod_inner.tex OCE_submod_inside.tex
+#
+# First add the preamble and title page with colour key legend
+#
+cat &lt;&lt; EOFA &gt; alloce.tex
+% Author: A. C. Coward
+\documentclass{article}[a4paper]
+\usepackage{tikz}
+\usepackage{adjustbox}
+\usetikzlibrary{trees}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{pgfpages}
+\pgfpagesuselayout{2 on 1}[a4paper,landscape]
+\newsavebox{\mysavebox}
+\newlength{\myrest}
+\setlength{\textheight}{1.0\textheight}
+\begin{document}
+\tikzstyle{every node}=[draw=black,thick,anchor=west]
+\tikzstyle{f90fil}=[rectangle, minimum height=0.65cm, minimum width=3.5cm, draw=black,fill=yellow!30]
+\tikzstyle{f90mod}=[rectangle, minimum height=0.65cm, minimum width=3.5cm,draw=black,fill=red!30]
+\tikzstyle{f90sub}=[minimum height=0.65cm, draw=black,fill=green!30]
+\tikzstyle{f90fun}=[minimum height=0.65cm, draw=black,fill=blue!30]
+\tikzstyle{f90gen}=[minimum height=0.65cm, draw=black,fill=orange!35]
+\tikzstyle{gright}=[grow=right, level distance=2cm, edge from parent path={(\tikzparentnode.east) |- (\tikzchildnode.west)}]
+\tikzstyle{gdown}=[ grow via three points={one child at (2.5,0.0) and
+                    two children at (2.5,0.0) and (2.5,-0.8)},
+                    edge from parent path={(\tikzparentnode.east) |- (\tikzchildnode.west)}]
+%%
+%% End of latex preamble
+%% Start title page
+%%
+\begin{center}
+{\LARGE\textbf NEMO v4.0 OCE file, module, subroutine and function map}
+\end{center}
+\bigskip
+%%
+%% Add directory layout (use colourless nodes)
+%%
+\begin{center}
+\begin{tikzpicture}[%
+                    grow via three points={one child at (0.5,-0.65) and
+                    two children at (0.5,-0.65) and (0.5,-1.3)},
+                    edge from parent path={(\tikzparentnode.south) |- (\tikzchildnode.west)}]
+  \node {./OCE}
+   child{ node {ASM}}
+   child{ node {BDY}}
+   child{ node {C1D}}
+   child{ node {CRS}}
+   child{ node {DIA}}
+   child{ node {DIU}}
+   child{ node {DOM}}
+   child{ node {DYN}}
+   child{ node {FLO}}
+   child{ node {ICB}}
+   child{ node {IOM}}
+   child{ node {LBC}}
+   child{ node {LDF}}
+   child{ node {OBS}}
+   child{ node {OCE}}
+   child{ node {SBC}}
+   child{ node {STO}}
+   child{ node {TRA}}
+   child{ node {TRD}}
+   child{ node {USR}}
+   child{ node {ZDF}}
+   ;
+\end{tikzpicture}
+\par\par\bigskip
+%%
+%% Add colour key legend
+%%
+\vskip 1cm
+\begin{tikzpicture}[%
+                    grow via three points={one child at (-1.75,-0.8) and
+                    two children at (-1.75,-0.8) and (-1.75,-1.6)},
+                    edge from parent path={(\tikzparentnode.south)  (\tikzchildnode.west)}]
+  \node [minimum height=0.65cm, minimum width=3.5cm] {Colour key}
+  child{ node [f90fil] {File}}
+  child{ node [f90mod] {Module}}
+  child{ node [f90sub,minimum height=0.65cm, minimum width=3.5cm] {Subroutine}}
+  child{ node [f90gen,minimum height=0.65cm, minimum width=3.5cm] {Generic subroutine}}
+  child{ node [f90fun,minimum height=0.65cm, minimum width=3.5cm] {Function}}
+  ;
+\end{tikzpicture}
+
+\end{center}
+%%
+%% End of title page
+%%
+EOFA
+#
+# Now add all the &#39;inner&#39; latex files starting with the main directory
+#
+  cat OCE_submod_inside.tex *inner.tex &gt;&gt; alloce.tex
+#
+# Finally add the end document statement
+#
+cat &lt;&lt; EOFB &gt;&gt; alloce.tex
+\end{document}
+EOFB
+</pre></div>
+</div>
+<p>The first a4 side of the multipage document produced by the resulting latex file should appear as:</p>
+<blockquote>
+<div><a class="reference internal image-reference" href="_images/alloce.png"><img alt="_images/alloce.png" class="align-center" src="_images/alloce.png" style="width: 690.0px; height: 494.0px;" /></a>
+</div></blockquote>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/NEMO-Website.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="NEMOmodmap_exceptions.html"
+                        title="previous chapter">Special cases</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="NEMOmodmap_alldirs.html"
+                        title="next chapter">Processing all directories</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/NEMOmodmap_combine.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="NEMOmodmap_alldirs.html" title="Processing all directories"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="NEMOmodmap_exceptions.html" title="Special cases"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">NEMOmodmap 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Andrew C. Coward, National Oceanography Centre, UK.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.5.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,299 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>NEMOmodmap &#8212; NEMOmodmap 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Special cases" href="NEMOmodmap_exceptions.html" />
+    <link rel="prev" title="NEMOmodmap" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="NEMOmodmap_exceptions.html" title="Special cases"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="NEMOmodmap"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">NEMOmodmap 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="nemomodmap">
+<h1>NEMOmodmap<a class="headerlink" href="#nemomodmap" title="Permalink to this headline">¶</a></h1>
+<p>Scripts for creating module and subprograms maps from NEMO source</p>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>These pages describe a pair of bash scripts which can be used to generate module and
+subprogram maps from the NEMO source files. The process is not fully automated since
+a small amount of hand editing is required in some cases. These special cases will be
+explained in greater detail but generally the process of creating a map such as:</p>
+<a class="reference internal image-reference" href="_images/OFF_submod.png"><img alt="_images/OFF_submod.png" class="align-center" src="_images/OFF_submod.png" style="width: 453.0px; height: 488.0px;" /></a>
+<p>requires just a few steps:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>#
+# set modmap_dir to the working directory containing copies of
+# the NEMOmodmap scripts and a (initially empty) build subdirectory
+#
+  cd src/OCE/OFF
+  $modmap_dir/mksubmodlist
+#
+# Hand edit newsubmod.list if necessary
+#
+  mv newsubmod.list $modmap_dir/OFF_submod.list
+  cd $modmap_dir
+  ./submod.sh OFF_submod.list &gt; OFF_submod.tex
+#
+  pdflatex -output-directory=./build OFF_submod.tex
+  mv ./build/OFF_submod.pdf ./
+#
+</pre></div>
+</div>
+<p>The two bash scripts: <cite>mksubmodlist</cite> and <cite>submod.sh</cite> are merely manipulating textual information
+gleaned from the code and wrapping this with latex commands. The final map is rendered by the pdflatex
+command. This process makes use of the TikZ latex package which comes as standard with most modern latex
+installations.</p>
+</div>
+<div class="section" id="the-mksubmodlist-script">
+<h2>The mksubmodlist script<a class="headerlink" href="#the-mksubmodlist-script" title="Permalink to this headline">¶</a></h2>
+<p>This first script is little more than an extended grep command designed to extract the module name and
+list the names of any contained subprograms within any <cite>.F90</cite> or <cite>.h90</cite> files with the current directory.
+This script relies on the NEMO coding conventions to provide correct information but could be easily
+adapted for other styles. The script is simply:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>#!/bin/bash
+for f in *.[Fh]90
+do
+echo $f &gt;&gt; newsubmod.list
+grep -e&#39;^ *SUBROUTINE&#39; -e&#39;FUNCTION&#39; -e&#39;^ *MODULE&#39; -e&#39;CONTAINS&#39; \
+     -e&#39;^ *INTERFACE&#39;  -e&#39;^ *RECURSIVE SUB&#39; $f \
+        | grep -v &#39;END FUNCT&#39; | grep -v &#39;^#&#39; | grep -v &#39;PROCEDURE&#39; \
+        | sed -e &#39;s/(.*) FUN/ FUN/1&#39; | sed -e &#39;s/(.*)//&#39; \
+        | sed -e &#39;s/(.*$//&#39; | grep -v &#39;^ *!&#39; &gt;&gt; newsubmod.list
+echo &quot; &quot;  &gt;&gt; newsubmod.list
+done
+</pre></div>
+</div>
+<p>which, when executed in, for example, the OFF directory produces the following
+<cite>newsubmod.list</cite> file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dtadyn</span><span class="o">.</span><span class="n">F90</span>
+<span class="n">MODULE</span> <span class="n">dtadyn</span>
+<span class="n">CONTAINS</span>
+   <span class="n">SUBROUTINE</span> <span class="n">dta_dyn</span>
+   <span class="n">SUBROUTINE</span> <span class="n">dta_dyn_init</span>
+   <span class="n">SUBROUTINE</span> <span class="n">dta_dyn_sed</span>
+   <span class="n">SUBROUTINE</span> <span class="n">dta_dyn_sed_init</span>
+   <span class="n">SUBROUTINE</span> <span class="n">dta_dyn_swp</span>
+   <span class="n">SUBROUTINE</span> <span class="n">dta_dyn_ssh</span>
+   <span class="n">SUBROUTINE</span> <span class="n">dta_dyn_hrnf</span>
+   <span class="n">SUBROUTINE</span> <span class="n">dta_dyn_slp</span>
+   <span class="n">SUBROUTINE</span> <span class="n">compute_slopes</span>
+
+<span class="n">nemogcm</span><span class="o">.</span><span class="n">F90</span>
+<span class="n">MODULE</span> <span class="n">nemogcm</span>
+<span class="n">CONTAINS</span>
+   <span class="n">SUBROUTINE</span> <span class="n">nemo_gcm</span>
+   <span class="n">SUBROUTINE</span> <span class="n">nemo_init</span>
+   <span class="n">SUBROUTINE</span> <span class="n">nemo_ctl</span>
+   <span class="n">SUBROUTINE</span> <span class="n">nemo_closefile</span>
+   <span class="n">SUBROUTINE</span> <span class="n">nemo_alloc</span>
+   <span class="n">SUBROUTINE</span> <span class="n">nemo_set_cfctl</span>
+   <span class="n">SUBROUTINE</span> <span class="n">istate_init</span>
+   <span class="n">SUBROUTINE</span> <span class="n">stp_ctl</span>
+</pre></div>
+</div>
+<p>This file conforms to the expected structure and requires no hand-editing. Other examples which
+require some manual intervention will be described later but the required structure is a series
+of blocks each containing:</p>
+<ul class="simple">
+<li>The name of the source file followed by</li>
+<li>A MODULE statement giving the name of the module followed by</li>
+<li>A CONTAINS statement followed by</li>
+<li>A list of SUBROUTINE, RECURSIVE SUBROUTINE or FUNCTION statements followed by</li>
+<li>A blank line</li>
+</ul>
+</div>
+<div class="section" id="the-submod-sh-script">
+<h2>The submod.sh script<a class="headerlink" href="#the-submod-sh-script" title="Permalink to this headline">¶</a></h2>
+<p>Conversion of these simple lists into appropriate latex instructions is done
+by the <cite>submod.sh</cite> script. Whilst the final Latex document can appear long and
+complex there is much repetition. At its heart the script is writing a latex
+pre- and post-amble for each map and converting each entry in each list to a labelled
+node in a TikZ tree diagram. Ignoring the preamble, the heart of the OFF directory
+example looks like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\<span class="n">usepackage</span><span class="p">{</span><span class="n">tikz</span><span class="p">}</span>
+\<span class="n">usepackage</span><span class="p">{</span><span class="n">adjustbox</span><span class="p">}</span>
+\<span class="n">usetikzlibrary</span><span class="p">{</span><span class="n">trees</span><span class="p">}</span>
+<span class="o">.</span>
+<span class="o">.</span>
+\<span class="n">begin</span><span class="p">{</span><span class="n">tikzpicture</span><span class="p">}[</span><span class="o">%</span>
+                    <span class="n">grow</span> <span class="n">via</span> <span class="n">three</span> <span class="n">points</span><span class="o">=</span><span class="p">{</span><span class="n">one</span> <span class="n">child</span> <span class="n">at</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="o">-</span><span class="mf">0.8</span><span class="p">)</span> <span class="ow">and</span>
+                    <span class="n">two</span> <span class="n">children</span> <span class="n">at</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="o">-</span><span class="mf">0.8</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="o">-</span><span class="mf">1.6</span><span class="p">)},</span>
+                    <span class="n">edge</span> <span class="kn">from</span> <span class="nn">parent</span> <span class="n">path</span><span class="o">=</span><span class="p">{(</span>\<span class="n">tikzparentnode</span><span class="o">.</span><span class="n">south</span><span class="p">)</span> <span class="o">|-</span> <span class="p">(</span>\<span class="n">tikzchildnode</span><span class="o">.</span><span class="n">west</span><span class="p">)}]</span>
+\<span class="n">node</span> <span class="p">{</span><span class="o">./</span><span class="n">OFF</span><span class="p">}</span>
+ <span class="n">child</span> <span class="p">{</span> <span class="n">node</span> <span class="p">[</span><span class="n">f90fil</span><span class="p">]</span> <span class="p">{</span><span class="n">dtadyn</span><span class="o">.</span><span class="n">F90</span><span class="p">}</span>
+  <span class="n">child</span> <span class="p">[</span><span class="n">gright</span><span class="p">]</span> <span class="p">{</span> <span class="n">node</span> <span class="p">[</span><span class="n">f90mod</span><span class="p">]</span> <span class="p">{</span><span class="n">dtadyn</span><span class="p">}</span>
+     <span class="p">[</span><span class="n">gdown</span><span class="p">]</span> <span class="n">child</span> <span class="p">{</span> <span class="n">node</span> <span class="p">[</span><span class="n">f90sub</span><span class="p">]</span> <span class="p">{</span><span class="n">dta</span>\<span class="n">_dyn</span><span class="p">}}</span>
+            <span class="n">child</span> <span class="p">{</span> <span class="n">node</span> <span class="p">[</span><span class="n">f90sub</span><span class="p">]</span> <span class="p">{</span><span class="n">dta</span>\<span class="n">_dyn</span>\<span class="n">_init</span><span class="p">}}</span>
+            <span class="n">child</span> <span class="p">{</span> <span class="n">node</span> <span class="p">[</span><span class="n">f90sub</span><span class="p">]</span> <span class="p">{</span><span class="n">dta</span>\<span class="n">_dyn</span>\<span class="n">_sed</span><span class="p">}}</span>
+            <span class="n">child</span> <span class="p">{</span> <span class="n">node</span> <span class="p">[</span><span class="n">f90sub</span><span class="p">]</span> <span class="p">{</span><span class="n">dta</span>\<span class="n">_dyn</span>\<span class="n">_sed</span>\<span class="n">_init</span><span class="p">}}</span>
+            <span class="n">child</span> <span class="p">{</span> <span class="n">node</span> <span class="p">[</span><span class="n">f90sub</span><span class="p">]</span> <span class="p">{</span><span class="n">dta</span>\<span class="n">_dyn</span>\<span class="n">_swp</span><span class="p">}}</span>
+            <span class="n">child</span> <span class="p">{</span> <span class="n">node</span> <span class="p">[</span><span class="n">f90sub</span><span class="p">]</span> <span class="p">{</span><span class="n">dta</span>\<span class="n">_dyn</span>\<span class="n">_ssh</span><span class="p">}}</span>
+            <span class="n">child</span> <span class="p">{</span> <span class="n">node</span> <span class="p">[</span><span class="n">f90sub</span><span class="p">]</span> <span class="p">{</span><span class="n">dta</span>\<span class="n">_dyn</span>\<span class="n">_hrnf</span><span class="p">}}</span>
+            <span class="n">child</span> <span class="p">{</span> <span class="n">node</span> <span class="p">[</span><span class="n">f90sub</span><span class="p">]</span> <span class="p">{</span><span class="n">dta</span>\<span class="n">_dyn</span>\<span class="n">_slp</span><span class="p">}}</span>
+            <span class="n">child</span> <span class="p">{</span> <span class="n">node</span> <span class="p">[</span><span class="n">f90sub</span><span class="p">]</span> <span class="p">{</span><span class="n">compute</span>\<span class="n">_slopes</span><span class="p">}}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="n">child</span> <span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="p">{}</span>
+    <span class="n">child</span> <span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="p">{}</span>
+    <span class="n">child</span> <span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="p">{}</span>
+    <span class="n">child</span> <span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="p">{}</span>
+    <span class="n">child</span> <span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="p">{}</span>
+    <span class="n">child</span> <span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="p">{}</span>
+    <span class="n">child</span> <span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="p">{}</span>
+    <span class="n">child</span> <span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="p">{}</span>
+    <span class="n">child</span> <span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="p">{}</span>
+ <span class="n">child</span> <span class="p">{</span> <span class="n">node</span> <span class="p">[</span><span class="n">f90fil</span><span class="p">]</span> <span class="p">{</span><span class="n">nemogcm</span><span class="o">.</span><span class="n">F90</span><span class="p">}</span>
+ <span class="o">.</span>
+ <span class="o">.</span>
+<span class="p">;</span>
+\<span class="n">end</span><span class="p">{</span><span class="n">tikzpicture</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>There are some subtle complexities, such as: offsetting single subprogram names so that they
+stand out better if sandwiched between lists for modules containing multiple subprograms;
+but otherwise the logic for converting lists into latex commands is quite straight-forward.</p>
+<p>The main style elements are defined in the preamble and are:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\tikzstyle{every node}=[draw=black,thick,anchor=west]
+\tikzstyle{f90fil}=[rectangle, minimum height=0.65cm, minimum width=3.5cm, draw=black,fill=yellow!30]
+\tikzstyle{f90mod}=[rectangle, minimum height=0.65cm, minimum width=3.5cm,draw=black,fill=red!30]
+\tikzstyle{f90sub}=[minimum height=0.65cm, draw=black,fill=green!30]
+\tikzstyle{f90fun}=[minimum height=0.65cm, draw=black,fill=blue!30]
+\tikzstyle{f90gen}=[minimum height=0.65cm, draw=black,fill=orange!35]
+\tikzstyle{gright}=[grow=right, level distance=2cm, edge from parent path={(\tikzparentnode.east) |- (\tikzchildnode.west)}]
+\tikzstyle{gdown}=[ grow via three points={one child at (2.5,0.0) and
+                    two children at (2.5,0.0) and (2.5,-0.8)},
+                    edge from parent path={(\tikzparentnode.east) |- (\tikzchildnode.west)}]
+</pre></div>
+</div>
+<p>These can be easily altered if colours or sizes are not to your taste.</p>
+<p>Much of the more obscure latex within the pre- and post-amble parts deals with splitting
+oversize maps across multiple pages (thanks Stack exchange!). This happens frequently and
+is handled by drawing the <cite>tikzpicture</cite> within a virtual box environment and comparing its
+height to the page’s <cite>textheight</cite>.  When necessary, the image is split and rendered across
+however many pages are required. The image is continuous across pages but the splitting
+will not necessarily occur between nodes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\<span class="n">begin</span><span class="p">{</span><span class="n">lrbox</span><span class="p">}{</span>\<span class="n">mysavebox</span><span class="p">}</span><span class="o">%</span>
+ \<span class="n">begin</span><span class="p">{</span><span class="n">tikzpicture</span><span class="p">}</span>
+<span class="o">.</span>
+<span class="o">.</span>
+ \<span class="n">end</span><span class="p">{</span><span class="n">tikzpicture</span><span class="p">}</span>
+\<span class="n">end</span><span class="p">{</span><span class="n">lrbox</span><span class="p">}</span><span class="o">%</span>
+<span class="o">%</span>
+\<span class="n">ifdim</span>\<span class="n">ht</span>\<span class="n">mysavebox</span><span class="o">&gt;</span>\<span class="n">textheight</span>
+    \<span class="n">setlength</span><span class="p">{</span>\<span class="n">myrest</span><span class="p">}{</span>\<span class="n">ht</span>\<span class="n">mysavebox</span><span class="p">}</span><span class="o">%</span>
+    \<span class="n">loop</span>\<span class="n">ifdim</span>\<span class="n">myrest</span><span class="o">&gt;</span>\<span class="n">textheight</span>
+        \<span class="n">newpage</span>\<span class="n">par</span>\<span class="n">noindent</span>
+        \<span class="n">clipbox</span><span class="p">{</span><span class="mi">0</span> <span class="p">{</span>\<span class="n">myrest</span><span class="o">-</span>\<span class="n">textheight</span><span class="p">}</span> <span class="mi">0</span> <span class="p">{</span>\<span class="n">ht</span>\<span class="n">mysavebox</span><span class="o">-</span>\<span class="n">myrest</span><span class="p">}}{</span>\<span class="n">usebox</span><span class="p">{</span>\<span class="n">mysavebox</span><span class="p">}}</span><span class="o">%</span>
+        \<span class="n">addtolength</span><span class="p">{</span>\<span class="n">myrest</span><span class="p">}{</span><span class="o">-</span>\<span class="n">textheight</span><span class="p">}</span><span class="o">%</span>
+    \<span class="n">repeat</span>
+    \<span class="n">newpage</span>\<span class="n">par</span>\<span class="n">noindent</span>
+    \<span class="n">clipbox</span><span class="p">{</span><span class="mi">0</span> <span class="mi">0</span> <span class="mi">0</span> <span class="p">{</span>\<span class="n">ht</span>\<span class="n">mysavebox</span><span class="o">-</span>\<span class="n">myrest</span><span class="p">}}{</span>\<span class="n">usebox</span><span class="p">{</span>\<span class="n">mysavebox</span><span class="p">}}</span><span class="o">%</span>
+\<span class="k">else</span>
+    \<span class="n">usebox</span><span class="p">{</span>\<span class="n">mysavebox</span><span class="p">}</span><span class="o">%</span>
+\<span class="n">fi</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/NEMO-Website.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">NEMOmodmap</a><ul>
+<li><a class="reference internal" href="#introduction">Introduction</a></li>
+<li><a class="reference internal" href="#the-mksubmodlist-script">The mksubmodlist script</a></li>
+<li><a class="reference internal" href="#the-submod-sh-script">The submod.sh script</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">NEMOmodmap</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="NEMOmodmap_exceptions.html"
+                        title="next chapter">Special cases</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/NEMOmodmap.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="NEMOmodmap_exceptions.html" title="Special cases"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="NEMOmodmap"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">NEMOmodmap 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Andrew C. Coward, National Oceanography Centre, UK.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.5.
+    </div>
+  </body>
+</html>

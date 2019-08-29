@@ -1,0 +1,197 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Processing all directories &#8212; NEMOmodmap 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Combining maps" href="NEMOmodmap_combine.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="NEMOmodmap_combine.html" title="Combining maps"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">NEMOmodmap 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="processing-all-directories">
+<h1>Processing all directories<a class="headerlink" href="#processing-all-directories" title="Permalink to this headline">¶</a></h1>
+<p>Given the standard layout of the NEMOv4 src directories, the following script can be used to
+produce all the submod.list files:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>#!/bin/bash
+# Start in src directory
+#
+# set modmap_dir to the location of the NEMOmodmap scripts
+#
+     export modmap_dir=/home/acc/NEMOmodmap
+#
+# Create module/subroutine/function list for OCE top-directory
+#
+     cd OCE
+     $modmap_dir/mksubmodlist
+     mv newsubmod.list OCE_submod.list
+#
+# Repeat for all OCE subdirectories
+#
+     for f in ASM  DIA  FLO  LDF BDY  DIU  ICB C1D  DOM  IOM CRS  DYN  LBC OBS SBC TRA ZDF STO TRD USR
+     do
+      cd $f
+      $modmap_dir/mksubmodlist
+      mv newsubmod.list ../${f}_submod.list
+      cd ../
+     done
+#
+# Similarly for TOP
+#
+     cd ../TOP
+     $modmap_dir/mksubmodlist
+     mv newsubmod.list TOP_submod.list
+#
+# and TOP subdirectories
+#
+     for f in AGE C14 CFC PISCES MY_TRC
+     do
+      cd $f
+      $modmap_dir/mksubmodlist
+      mv newsubmod.list ../${f}_submod.list
+      cd ../
+     done
+#
+# .. but PISCES has subdirectories of its own
+#
+     cd PISCES
+     for f in SED P2Z P4Z
+     do
+      cd $f
+      $modmap_dir/mksubmodlist
+      mv newsubmod.list ../${f}_submod.list
+      cd ../
+     done
+#
+# Rename these to reference their parent directory
+#
+     mv P2Z_submod.list ../PISCES_P2Z_submod.list
+     mv P4Z_submod.list ../PISCES_P4Z_submod.list
+     mv SED_submod.list ../PISCES_SED_submod.list
+     cd ../
+#
+# Also list ICE routunes
+#
+     cd ../ICE
+     $modmap_dir/mksubmodlist
+     mv newsubmod.list ../ICE_submod.list
+     cd ../
+#
+# and Finally the remaining bits
+#
+     for f in NST OFF  SAO  SAS
+     do
+      cd $f
+      $modmap_dir/mksubmodlist
+      mv newsubmod.list ../${f}_submod.list
+      cd ../
+     done
+#
+# Which should provide this lot:
+# cd ../
+# find ./ -name &#39;*submod*&#39;
+#
+# ./src/TOP
+# ./src/TOP/AGE_submod.list         ./src/TOP/C14_submod.list         ./src/TOP/CFC_submod.list
+# ./src/TOP/MY_TRC_submod.list      ./src/TOP/PISCES_submod.list      ./src/TOP/TRP_submod.list
+# ./src/TOP/PISCES_P2Z_submod.list  ./src/TOP/PISCES_P4Z_submod.list  ./src/TOP/PISCES_SED_submod.list
+#
+# ./src/OCE
+# ./src/OCE/ASM_submod.list         ./src/OCE/LDF_submod.list         ./src/OCE/DIU_submod.list
+# ./src/OCE/ICB_submod.list         ./src/OCE/DOM_submod.list         ./src/OCE/IOM_submod.list
+# ./src/OCE/CRS_submod.list         ./src/OCE/DYN_submod.list         ./src/OCE/TRD_submod.list
+# ./src/OCE/OBS_submod.list         ./src/OCE/SBC_submod.list         ./src/OCE/TRA_submod.list
+# ./src/OCE/ZDF_submod.list         ./src/OCE/OCE_submod.list         ./src/OCE/BDY_submod.list
+# ./src/OCE/C1D_submod.list         ./src/OCE/DIA_submod.list         ./src/OCE/FLO_submod.list
+# ./src/OCE/LBC_submod.list         ./src/OCE/STO_submod.list         ./src/OCE/USR_submod.list
+#
+# ./src/ICE_submod.list
+#
+# ./src/OFF_submod.list             ./src/SAO_submod.list
+# ./src/SAS_submod.list             ./src/NST_submod.list
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/NEMO-Website.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="NEMOmodmap_combine.html"
+                        title="previous chapter">Combining maps</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/NEMOmodmap_alldirs.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="NEMOmodmap_combine.html" title="Combining maps"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">NEMOmodmap 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Andrew C. Coward, National Oceanography Centre, UK.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.5.
+    </div>
+  </body>
+</html>
