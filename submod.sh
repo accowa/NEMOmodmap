@@ -30,60 +30,70 @@ echo "                    grow via three points={one child at (0.5,-0.8) and"   
 echo "                    two children at (0.5,-0.8) and (0.5,-1.6)},"                                | tee -a $inner
 echo "                    edge from parent path={(\tikzparentnode.south) |- (\tikzchildnode.west)}]"  | tee -a $inner
 echo "  \node {./"${dir}"}"                                                                           | tee -a $inner
+skip=0
 while IFS= read -r line
 do
-  if [[ $line == *"F90"* ]]; then
-    f=`echo $line | sed -e 's/_/\\\_/g'`
-    echo "child { node [f90fil] {"${f}"}"                                                             | tee -a $inner
-  elif [[ $line == *"MODULE"* ]]; then
-    f=`echo $line | sed -e 's/MODULE //' -e 's/_/\\\_/g'`
-    echo "  child [gright] { node [f90mod] {"${f}"}"                                                 | tee -a $inner
-    m=1
-  elif [[ $line == *"CONTAINS"* ]]; then
-    c=-1
-  elif [[ $line == *"SUBROUTINE"* ]]; then
-    c=$(( $c + 1 ))
-    f=`echo $line | sed -e 's/^.*SUBROUTINE //' -e 's/_/\\\_/g'`
-    if [[ $c == 0 ]]; then
-       line0="child [gright] { node [f90sub] {"${f}"}}"
-       line1="[gdown] child { node [f90sub] {"${f}"}}"
-    else
-      if [[ $c == 1 ]]; then echo "     "$line1           | tee -a $inner  ; fi
-      echo "            child { node [f90sub] {"${f}"}}"                                              | tee -a $inner
+  if [ $skip == 0 ] || [[ -z "${line// }" ]] ; then         # skip any non-blank lines after a second CONTAINS
+    if [[ $line == *"F90"* ]] || [[ $line == *"h90"* ]]; then
+      f=`echo $line | sed -e 's/_/\\\_/g'`
+      echo "child { node [f90fil] {"${f}"}"                                                          | tee -a $inner
+    elif [[ $line == *"MODULE"* ]]; then
+      f=`echo $line | sed -e 's/MODULE //' -e 's/_/\\\_/g'`
+      echo "  child [gright] { node [f90mod] {"${f}"}"                                               | tee -a $inner
+      m=0                                     # initialise a counter for CONTAINS statements
+    elif [[ $line == *"CONTAINS"* ]]; then
+      skip=0
+      if [ $m -gt 0 ] ; then 
+        skip=1                                # second or more CONTAINS in this block - skip to the next empty line
+      else 
+        c=-1                                  # new CONTAINS block - initialise the subprogram counter
+      fi
+      m=$(( $m + 1 ))                         # increment counter (only one is allowed per MODULE)
+    elif [[ $line == *"SUBROUTINE"* ]]; then
+      c=$(( $c + 1 ))
+      f=`echo $line | sed -e 's/^.*SUBROUTINE //' -e 's/_/\\\_/g'`
+      if [[ $c == 0 ]]; then                                   # if this is the first subprogram
+         line0="child [gright] { node [f90sub] {"${f}"}}"      # starting line if this turns out to be a singleton
+         line1="[gdown] child { node [f90sub] {"${f}"}}"       # starting line if there are multiple subprograms
+      else                                                     # else there are multiple subprograms
+        if [[ $c == 1 ]]; then echo "     "$line1                                                     | tee -a $inner  ; fi
+        echo "            child { node [f90sub] {"${f}"}}"                                            | tee -a $inner
+      fi
+    elif [[ $line == *"FUNCTION"* ]]; then
+      c=$(( $c + 1 ))
+      f=`echo $line | sed -e 's/^.*FUNCTION //' -e 's/_/\\\_/g'`
+      if [[ $c == 0 ]]; then                                   # if this is the first subprogram
+         line0="child [gright] { node [f90fun] {"${f}"}}"      # starting line if this turns out to be a singleton
+         line1="[gdown] child { node [f90fun] {"${f}"}}"       # starting line if there are multiple subprograms
+      else                                                     # else there are multiple subprograms
+        if [[ $c == 1 ]]; then echo "     "$line1                                                     | tee -a $inner   ; fi
+        echo "            child { node [f90fun] {"${f}"}}"                                            | tee -a $inner
+      fi
+    elif [[ $line == *"INTERFACE"* ]]; then
+      c=$(( $c + 1 ))
+      f=`echo $line | sed -e 's/^.*INTERFACE //' -e 's/_/\\\_/g'`
+      if [[ $c == 0 ]]; then                                   # if this is the first subprogram
+         line0="child [gright] { node [f90gen] {"${f}"}}"      # starting line if this turns out to be a singleton
+         line1="[gdown] child { node [f90gen] {"${f}"}}"       # starting line if there are multiple subprograms
+      else                                                     # else there are multiple subprograms
+        if [[ $c == 1 ]]; then echo "     "$line1                                                     | tee -a $inner ; fi
+        echo "            child { node [f90gen] {"${f}"}}"                                            | tee -a $inner
+      fi
+    elif [[ -z "${line// }" ]] ; then
+      if [[ $c == 0 ]]; then                                   # subprogram turned out to be a singleton
+        echo "    "$line0                                                                             | tee -a $inner
+      fi
+      echo "        }"                                                                                | tee -a $inner
+      echo "      }"                                                                                  | tee -a $inner
+      if [[ $c -ge 1 ]]; then                                  # add appropriate number of spacers
+       for i in `seq 1 1 $(( $c + 1 ))`
+       do
+        echo "    child [missing] {}"                                                                 | tee -a $inner
+       done
+      fi
+      c=-1
+      skip=0
     fi
-  elif [[ $line == *"FUNCTION"* ]]; then
-    c=$(( $c + 1 ))
-    f=`echo $line | sed -e 's/^.*FUNCTION //' -e 's/_/\\\_/g'`
-    if [[ $c == 0 ]]; then
-       line0="child [gright] { node [f90fun] {"${f}"}}"
-       line1="[gdown] child { node [f90fun] {"${f}"}}"
-    else
-      if [[ $c == 1 ]]; then echo "     "$line1          | tee -a $inner   ; fi
-      echo "            child { node [f90fun] {"${f}"}}"                                              | tee -a $inner
-    fi
-  elif [[ $line == *"INTERFACE"* ]]; then
-    c=$(( $c + 1 ))
-    f=`echo $line | sed -e 's/^.*INTERFACE //' -e 's/_/\\\_/g'`
-    if [[ $c == 0 ]]; then
-       line0="child [gright] { node [f90gen] {"${f}"}}"
-       line1="[gdown] child { node [f90gen] {"${f}"}}"
-    else
-      if [[ $c == 1 ]]; then echo "     "$line1           | tee -a $inner ; fi
-      echo "            child { node [f90gen] {"${f}"}}"                                              | tee -a $inner
-    fi
-  else
-    if [[ $c == 0 ]]; then
-      echo "    "$line0                                                                               | tee -a $inner
-    fi
-    echo "        }"                                                                                  | tee -a $inner
-    echo "      }"                                                                                    | tee -a $inner
-    if [[ $c -ge 1 ]]; then
-     for i in `seq 1 1 $(( $c + 1 ))`
-     do
-      echo "    child [missing] {}"                                                                   | tee -a $inner
-     done
-    fi
-    c=-1
   fi
 done < $input
 echo ";"                                                                                              | tee -a $inner
